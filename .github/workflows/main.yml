@@ -1,14 +1,7 @@
 name: Build and Deploy to Itch.io
 
 on:
-  push:
-    branches: [ main ]
-    # Don't run workflow when only these files change
-    paths-ignore:
-      - '.github/workflows/**'
-      - 'README.md'
-
-  # Manual trigger with UI inputs
+  # Manual trigger with UI inputs ONLY
   workflow_dispatch:
     inputs:
       itchUsername:
@@ -27,7 +20,7 @@ on:
       buildWindows:
         description: 'Build Windows'
         required: true
-        default: true
+        default: false
         type: boolean
       buildMacOS:
         description: 'Build MacOS'
@@ -67,8 +60,7 @@ jobs:
             itchChannel: linux
             buildInput: buildLinux
 
-    # This 'if' needs to be updated if you want automatic builds on push.
-    # Currently it ONLY runs if a manual checkbox is checked.
+    # Run only if the specific platform checkbox is checked in the manual trigger
     if: ${{ github.event.inputs[matrix.buildInput] == 'true' }}
 
     steps:
@@ -124,6 +116,7 @@ jobs:
             itchChannel: linux
             buildInput: buildLinux
 
+    # Same condition as build job
     if: ${{ github.event.inputs[matrix.buildInput] == 'true' }}
 
     steps:
