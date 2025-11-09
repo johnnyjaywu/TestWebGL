@@ -91,6 +91,13 @@ jobs:
           restore-keys: |
             Library-${{ matrix.targetPlatform }}-
             Library-
+      
+      # Free up disk space to prevent "no space left on device" errors
+      - name: Free Disk Space
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/ghc
 
       - name: Run Unity Build
         uses: game-ci/unity-builder@v4
