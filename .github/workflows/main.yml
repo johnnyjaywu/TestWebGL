@@ -1,6 +1,13 @@
 name: Build and Deploy to Itch.io
 
 on:
+  push:
+    branches: [ main ]
+    # Don't run workflow when only these files change
+    paths-ignore:
+      - '.github/workflows/**'
+      - 'README.md'
+
   # Manual trigger with UI inputs
   workflow_dispatch:
     inputs:
@@ -60,7 +67,8 @@ jobs:
             itchChannel: linux
             buildInput: buildLinux
 
-    # This 'if' condition checks the input checkbox before running the job for this matrix entry
+    # This 'if' needs to be updated if you want automatic builds on push.
+    # Currently it ONLY runs if a manual checkbox is checked.
     if: ${{ github.event.inputs[matrix.buildInput] == 'true' }}
 
     steps:
@@ -86,11 +94,6 @@ jobs:
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
         with:
           targetPlatform: ${{ matrix.targetPlatform }}
-
-      - name: Zip Build Output
-        run: |
-          cd build/${{ matrix.targetPlatform }}
-          zip -r ../../${{ github.event.inputs.itchGameId }}-${{ matrix.targetPlatform }}.zip .
 
       - name: Upload Build Artifact
         uses: actions/upload-artifact@v4
@@ -121,7 +124,6 @@ jobs:
             itchChannel: linux
             buildInput: buildLinux
 
-    # Same 'if' condition here ensuring we only try to deploy what we built
     if: ${{ github.event.inputs[matrix.buildInput] == 'true' }}
 
     steps:
