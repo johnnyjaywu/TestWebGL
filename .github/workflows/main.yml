@@ -1,0 +1,102 @@
+name: Build and Deploy to Itch.io
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  # CONFIGURATION
+  ITCH_USERNAME: hurkledurkler # CHANGE THIS
+  ITCH_GAME_ID: test # CHANGE THIS
+  # Set this if auto-detect fails. Must be exact, e.g., 6000.0.0f1
+  # UNITY_VERSION: 6000.0.0f1 
+
+jobs:
+  build:
+    name: Build ${{ matrix.targetPlatform }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # List all the platforms you want to build here
+        include:
+          - targetPlatform: WebGL
+            itchChannel: webgl-html5
+          # - targetPlatform: StandaloneWindows64
+          #   itchChannel: windows
+          # - targetPlatform: StandaloneOSX
+          #   itchChannel: mac
+          # - targetPlatform: StandaloneLinux64
+          #   itchChannel: linux
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Cache Library
+        uses: actions/cache@v4
+        with:
+          path: Library
+          key: Library-${{ matrix.targetPlatform }}-${{ hashFiles('Assets/**', 'Packages/**', 'ProjectSettings/**') }}
+          restore-keys: |
+            Library-${{ matrix.targetPlatform }}-
+            Library-
+
+      - name: Run Unity Build
+        uses: game-ci/unity-builder@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          targetPlatform: ${{ matrix.targetPlatform }}
+
+      - name: Zip Build Output
+        run: |
+          cd build/${{ matrix.targetPlatform }}
+          zip -r ../../${{ env.ITCH_GAME_ID }}-${{ matrix.targetPlatform }}.zip .
+
+      - name: Upload Build Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-${{ matrix.targetPlatform }}
+          path: build/${{ matrix.targetPlatform }}
+          retention-days: 5
+
+  deploy:
+    name: Deploy ${{ matrix.targetPlatform }} to Itch
+    needs: build
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # This matrix must match the build matrix above exactly
+        include:
+          - targetPlatform: WebGL
+            itchChannel: webgl-html5
+          # - targetPlatform: StandaloneWindows64
+          #   itchChannel: windows
+          # - targetPlatform: StandaloneOSX
+          #   itchChannel: mac
+          # - targetPlatform: StandaloneLinux64
+          #   itchChannel: linux
+
+    steps:
+      - name: Download Build Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: build-${{ matrix.targetPlatform }}
+          path: build
+
+      - name: Deploy to itch.io
+        uses: KikimoraGames/itch-publish@v0.0.3
+        with:
+          butlerApiKey: ${{ secrets.BUTLER_API_KEY }}
+          gameData: ./build
+          itchUsername: ${{ env.ITCH_USERNAME }}
+          itchGameId: ${{ env.ITCH_GAME_ID }}
+          buildChannel: ${{ matrix.itchChannel }}
+          buildNumber: ${{ github.run_number }}
