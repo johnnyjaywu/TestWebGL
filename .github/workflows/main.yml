@@ -1,13 +1,19 @@
-name: Build and Deploy to Itch
+name: "Build and Deploy to Itch.io"
 on:
+  # push:
+  #   branches:
+  #     - main
+  # pull_request:
+  #   branches:
+  #     - main
   workflow_dispatch:
     inputs:
       itchUsername:
-        description: 'Itch.io Username'
+        description: "Itch.io Username"
         required: true
         type: string
       itchGameId:
-        description: 'Itch.io Game ID (slug)'
+        description: "Itch.io Game ID (slug)"
         required: true
         type: string
       buildWebGL:
