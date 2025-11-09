@@ -17,22 +17,22 @@ on:
         required: true
         type: string
       buildWebGL:
-        description: 'Build WebGL'
+        description: "Build WebGL"
         required: true
         default: true
         type: boolean
       buildWindows:
-        description: 'Build Windows'
+        description: "Build Windows"
         required: true
         default: false
         type: boolean
       buildMacOS:
-        description: 'Build MacOS'
+        description: "Build MacOS"
         required: true
         default: false
         type: boolean
       buildLinux:
-        description: 'Build Linux'
+        description: "Build Linux"
         required: true
         default: false
         type: boolean
