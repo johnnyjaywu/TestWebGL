@@ -1,5 +1,7 @@
 name: Build and Deploy to Itch.io
+
 on:
+  # Manual trigger with UI inputs ONLY
   workflow_dispatch:
     inputs:
       itchUsername:
@@ -30,11 +32,12 @@ on:
         required: true
         default: false
         type: boolean
-        
+
+# Prevents overlapping builds.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
-  
+
 jobs:
   build:
     name: Build ${{ matrix.targetPlatform }}
@@ -46,25 +49,26 @@ jobs:
         include:
           - targetPlatform: WebGL
             itchChannel: webgl-html5
-            buildInput: buildWebGL
           - targetPlatform: StandaloneWindows64
             itchChannel: windows
-            buildInput: buildWindows
           - targetPlatform: StandaloneOSX
             itchChannel: mac
-            buildInput: buildMacOS
           - targetPlatform: StandaloneLinux64
             itchChannel: linux
-            buildInput: buildLinux
-            
-    if: ${{ github.event.inputs[matrix.buildInput] == 'true' }} # Run only if the specific platform checkbox is checked in the manual trigger
-    
+
+    # Explicit check to bypass parser limitations with dynamic keys
+    if: >-
+      (matrix.targetPlatform == 'WebGL' && inputs.buildWebGL == 'true') ||
+      (matrix.targetPlatform == 'StandaloneWindows64' && inputs.buildWindows == 'true') ||
+      (matrix.targetPlatform == 'StandaloneOSX' && inputs.buildMacOS == 'true') ||
+      (matrix.targetPlatform == 'StandaloneLinux64' && inputs.buildLinux == 'true')
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           lfs: true
-          
+
       - name: Cache Library
         uses: actions/cache@v4
         with:
@@ -73,7 +77,7 @@ jobs:
           restore-keys: |
             Library-${{ matrix.targetPlatform }}-
             Library-
-            
+
       - name: Run Unity Build
         uses: game-ci/unity-builder@v4
         env:
@@ -82,14 +86,14 @@ jobs:
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
         with:
           targetPlatform: ${{ matrix.targetPlatform }}
-          
+
       - name: Upload Build Artifact
         uses: actions/upload-artifact@v4
         with:
           name: build-${{ matrix.targetPlatform }}
           path: build/${{ matrix.targetPlatform }}
           retention-days: 5
-          
+
   deploy:
     name: Deploy ${{ matrix.targetPlatform }} to Itch
     needs: build
@@ -101,32 +105,33 @@ jobs:
         include:
           - targetPlatform: WebGL
             itchChannel: webgl-html5
-            buildInput: buildWebGL
           - targetPlatform: StandaloneWindows64
             itchChannel: windows
-            buildInput: buildWindows
           - targetPlatform: StandaloneOSX
             itchChannel: mac
-            buildInput: buildMacOS
           - targetPlatform: StandaloneLinux64
             itchChannel: linux
-            buildInput: buildLinux
-            
-    if: ${{ github.event.inputs[matrix.buildInput] == 'true' }} # Same condition as build job
-    
+
+    # Same explicit check as build job
+    if: >-
+      (matrix.targetPlatform == 'WebGL' && inputs.buildWebGL == 'true') ||
+      (matrix.targetPlatform == 'StandaloneWindows64' && inputs.buildWindows == 'true') ||
+      (matrix.targetPlatform == 'StandaloneOSX' && inputs.buildMacOS == 'true') ||
+      (matrix.targetPlatform == 'StandaloneLinux64' && inputs.buildLinux == 'true')
+
     steps:
       - name: Download Build Artifact
         uses: actions/download-artifact@v4
         with:
           name: build-${{ matrix.targetPlatform }}
           path: build
-          
+
       - name: Deploy to itch.io
         uses: KikimoraGames/itch-publish@v0.0.3
         with:
           butlerApiKey: ${{ secrets.BUTLER_API_KEY }}
           gameData: ./build
-          itchUsername: ${{ github.event.inputs.itchUsername }}
-          itchGameId: ${{ github.event.inputs.itchGameId }}
+          itchUsername: ${{ inputs.itchUsername }}
+          itchGameId: ${{ inputs.itchGameId }}
           buildChannel: ${{ matrix.itchChannel }}
           buildNumber: ${{ github.run_number }}
