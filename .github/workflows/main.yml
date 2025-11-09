@@ -1,6 +1,5 @@
 name: Build and Deploy to Itch
 on:
-  # Manual trigger with UI inputs ONLY
   workflow_dispatch:
     inputs:
       itchUsername:
